@@ -107,10 +107,11 @@ RecursivelyCopyFile() {
     if [ -f "$1" ]; then
         if [ -d "$2" ]; then    # cp to a dir
             local DST=$2/$(basename "$1")
-        elif [ -f "$2"]; then   # cp to a file
+        elif [ -f "$2" ]; then   # cp to a file
             local DST=$2
         else
             OutputUsage "destination doesn't exists"
+            exit 1
         fi
     elif [ -d "$1" ]; then
         :
