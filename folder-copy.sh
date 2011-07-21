@@ -9,7 +9,10 @@ BAR_CHAR=#
 SCRIPT_NAME=$(basename $0)
 BAR=$(printf "%01000d" 0 | tr "0" "${BAR_CHAR}")
 
-[ -n $COLUMNS ] || COLUMNS=80
+if [ -n $COLUMNS ]; then
+    echo "No COLUMNS definition, USE 80 as default"
+    COLUMNS=80
+fi
 
 
 OutputError() {
@@ -49,8 +52,8 @@ OutputProgressBar() {
 }
 
 FileSize() {
-    du -sb "$1" | cut -f1
-    #wc -c "$1" | cut -d' ' -f1
+    #du -sb "$1" | cut -f1
+    wc -c "$1" | cut -d' ' -f1
 }
 
 CopyFile1() {
@@ -101,25 +104,49 @@ CopyFile() {
     echo
 }
 
+
+
 RecursivelyCopyFile() {
     # basename test, if qe
-    local SRC="$1"
-    if [ -f "$1" ]; then
+    local SRC=${1%/}
+    local DST
+    if [ -f "$SRC" ]; then
+	# Debug "SRC is a file"
         if [ -d "$2" ]; then    # cp to a dir
-            local DST=$2/$(basename "$1")
+            DST=${2%/}/$(basename "$SRC")
         elif [ -f "$2" ]; then   # cp to a file
-            local DST=$2
-        else
+            DST=$2
+        elif [ -d $(dirname "$2") ]; then 
+	    DST=$2
+	else
             OutputUsage "destination doesn't exists"
             exit 1
         fi
-    elif [ -d "$1" ]; then
-        :
+	CopyFile "$SRC" "$DST"
+    elif [ -d "$SRC" ]; then
+	# Debug "SRC is a dir"
+	if [ -d $(dirname "$2") ] && [ ! -e "$2" ]; then
+	    mkdir "$2"
+	fi
+        if [ -d "$2" ]; then 	# dir to a dir inside
+	    for f in $(ls -1 "$SRC"); do
+		# Debug "f = $f"
+		DST=${2%/}/$(basename "$f")
+		# Debug "DST=$DST"
+		
+		RecursivelyCopyFile "$SRC/$f" "$DST"
+	    done
+	elif [ -e "$2" ]; then
+	    OutputUsage "can't overwrite exsiting file"
+	fi
+    else
+	OutputUsage "source doesn't exists or not supported"
+	exit 1
     fi
-    if [ $(basename "$1") -ne $(basename "$2") ]; then
-	    :
-    fi
-    mkdir -p "$2"
+#    if [ $(basename "$1") -ne $(basename "$2") ]; then
+	#    :
+#    fi
+    # mkdir -p "$2"
     if [ -f "$1" ]; then
 	    :
     fi
@@ -135,13 +162,18 @@ if [ $# -eq 0 ]; then
 elif [ $# -lt 2 ]; then
     OutputUsage "no enough parameters"
     exit 1
-elif [ ! -e $1 ]; then
-    OutputUsage "$1 does not exists"
+elif [ "$1" -ef "$2" ]; then
+    OutputUsage "you are joking...."
+    exit
 fi
 
-Debug "Column length ${COLUMNS}"
+# Debug "Column length ${COLUMNS}"
 echo
 RecursivelyCopyFile "$1" "$2"
+
+
+echo ok
+exit 0
 
 for f in file1 file2 file3 file4; do
     i=1
