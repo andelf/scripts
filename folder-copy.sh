@@ -27,6 +27,7 @@ OutputUsage() {
         echo "Usage:"
         echo "    ${SCRIPT_NAME} src dst"
     fi
+    exit 1
 }
 
 Debug() {
@@ -104,7 +105,16 @@ RecursivelyCopyFile() {
     # basename test, if qe
     local SRC="$1"
     if [ -f "$1" ]; then
-        if [
+        if [ -d "$2" ]; then    # cp to a dir
+            local DST=$2/$(basename "$1")
+        elif [ -f "$2"]; then   # cp to a file
+            local DST=$2
+        else
+            OutputUsage "destination doesn't exists"
+        fi
+    elif [ -d "$1" ]; then
+        :
+    fi
     if [ $(basename "$1") -ne $(basename "$2") ]; then
 	    :
     fi
