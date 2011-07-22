@@ -1,4 +1,4 @@
-#!/bin/bash -i
+#!/bin/bash
 # must use -i to enable COLUMNS varable
 
 # configuration
@@ -10,7 +10,7 @@ SCRIPT_NAME=$(basename $0)
 BAR=$(printf "%01000d" 0 | tr "0" "${BAR_CHAR}")
 
 if [ -n $COLUMNS ]; then
-    echo "No COLUMNS definition, USE 80 as default"
+    # echo "No COLUMNS definition, USE 80 as default"
     COLUMNS=80
 fi
 
@@ -107,34 +107,30 @@ CopyFile() {
 
 
 RecursivelyCopyFile() {
-    # basename test, if qe
-    local SRC=${1%/}
-    local DST
-    if [ -f "$SRC" ]; then
-	# Debug "SRC is a file"
+    local src=${1%/}
+    local dst
+    if [ -f "$src" ]; then
+	# Debug "src is a file"
         if [ -d "$2" ]; then    # cp to a dir
-            DST=${2%/}/$(basename "$SRC")
+            dst=${2%/}/$(basename "$src")
         elif [ -f "$2" ]; then   # cp to a file
-            DST=$2
+            dst=$2
         elif [ -d $(dirname "$2") ]; then 
-	    DST=$2
+	    dst=$2
 	else
             OutputUsage "destination doesn't exists"
             exit 1
         fi
-	CopyFile "$SRC" "$DST"
-    elif [ -d "$SRC" ]; then
-	# Debug "SRC is a dir"
+	CopyFile "$src" "$dst"
+    elif [ -d "$src" ]; then
+	# Debug "src is a dir"
 	if [ -d $(dirname "$2") ] && [ ! -e "$2" ]; then
 	    mkdir "$2"
 	fi
         if [ -d "$2" ]; then 	# dir to a dir inside
-	    for f in $(ls -1 "$SRC"); do
-		# Debug "f = $f"
-		DST=${2%/}/$(basename "$f")
-		# Debug "DST=$DST"
-		
-		RecursivelyCopyFile "$SRC/$f" "$DST"
+	    for f in $(ls -1 "$src"); do
+		dst=${2%/}/$(basename "$f")
+		RecursivelyCopyFile "$src/$f" "$dst"
 	    done
 	elif [ -e "$2" ]; then
 	    OutputUsage "can't overwrite exsiting file"
@@ -143,14 +139,6 @@ RecursivelyCopyFile() {
 	OutputUsage "source doesn't exists or not supported"
 	exit 1
     fi
-#    if [ $(basename "$1") -ne $(basename "$2") ]; then
-	#    :
-#    fi
-    # mkdir -p "$2"
-    if [ -f "$1" ]; then
-	    :
-    fi
-
 }
 
 
@@ -164,10 +152,23 @@ elif [ $# -lt 2 ]; then
     exit 1
 elif [ "$1" -ef "$2" ]; then
     OutputUsage "you are joking...."
-    exit
+    exit 1
 fi
 
-# Debug "Column length ${COLUMNS}"
+# avoid something like cp -r /d1/ /d1/d2
+tmp_dir="$2"
+while [ ! "$tmp_dir" -ef / ]; do
+    if [ "$tmp_dir" -ef "$1" ]; then
+	OutputUsage "you can't copy folder to a subfolder"
+	exit 1
+    elif [ "$tmp_dir" -ef "." ]; then
+	tmp_dir="$PWD"		# dirname can't handle `.`
+    fi
+    tmp_dir=$(dirname "$tmp_dir")
+done
+
+
+Debug "Column length ${COLUMNS}"
 echo
 RecursivelyCopyFile "$1" "$2"
 
@@ -175,16 +176,3 @@ RecursivelyCopyFile "$1" "$2"
 echo ok
 exit 0
 
-for f in file1 file2 file3 file4; do
-    i=1
-    while [ $i -le 100 ]; do
-        OutputProgressBar "$f" "$i"
-        let "i += 1"
-        sleep 0.01
-    done
-    echo
-done
-#for arg in "$@"; do
-#    echo "$arg"
-#done
-echo
