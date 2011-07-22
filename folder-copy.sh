@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -i
 # must use -i to enable COLUMNS varable
 
 # configuration
@@ -48,7 +48,7 @@ OutputProgressBar() {
     bar_full_length=$(( ${COLUMNS} - ${MAX_FILE_NAME_LENGHT} - 9))
     bar_current_length=$((${bar_full_length} * $2 / 100))
     line="%-${MAX_FILE_NAME_LENGHT}.${MAX_FILE_NAME_LENGHT}s [%-${bar_full_length}.${bar_current_length}s] %3d%%"
-    printf "$line" $1 ${BAR} $2
+    printf "$line" $(basename "$1") "$BAR" "$2"
 }
 
 FileSize() {
@@ -67,24 +67,24 @@ CopyFile1() {
     file_size=$(FileSize "$1")
     Debug "filesize of $1 is $file_size"
     if [ $file_size -le $BUFFER_SIZE ]; then
-    OutputProgressBar "$1" 0
-    cp "$1" "$2"
-    OutputProgressBar "$1" 100
-    echo
+	OutputProgressBar "$1" 0
+	cp "$1" "$2"
+	OutputProgressBar "$1" 100
+	echo
     else
-    OutputProgressBar "$1" 0
-    : > "$2"
-    block_index=0
-    total_blocks=$(($file_size / $BLOCK_SIZE + 1))
-    block_count=$(($BUFFER_SIZE / $BLOCK_SIZE))
-    while [ $block_index -lt $total_blocks ]; do
-        dd count=$block_count \
-        bs=$BLOCK_SIZE if="$1" skip="$block_index" \
-        of="$2" seek="$block_index" &> /dev/null
-        block_index=$(($BUFFER_SIZE / $BLOCK_SIZE + $block_index))
-        OutputProgressBar "$1" $(($block_index * 100 / $total_blocks))
-    done
-    OutputProgressBar "$1" 100
+	OutputProgressBar "$1" 0
+	: > "$2"
+	block_index=0
+	total_blocks=$(($file_size / $BLOCK_SIZE + 1))
+	block_count=$(($BUFFER_SIZE / $BLOCK_SIZE))
+	while [ $block_index -lt $total_blocks ]; do
+	    dd count=$block_count \
+		bs=$BLOCK_SIZE if="$1" skip="$block_index" \
+		of="$2" seek="$block_index" &> /dev/null
+	    block_index=$(($BUFFER_SIZE / $BLOCK_SIZE + $block_index))
+	    OutputProgressBar "$1" $(($block_index * 100 / $total_blocks))
+	done
+	OutputProgressBar "$1" 100
     fi
 }
 
@@ -168,10 +168,9 @@ while [ ! "$tmp_dir" -ef / ]; do
 done
 
 
-Debug "Column length ${COLUMNS}"
+# Debug "Column length ${COLUMNS}"
 echo
 RecursivelyCopyFile "$1" "$2"
-
 
 echo ok
 exit 0
