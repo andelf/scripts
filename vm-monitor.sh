@@ -28,33 +28,32 @@ OutputUsage() {
 
 AnalysisData() {
     awk 'function abs(n){if(n<0) n=-n; return n;}
-function hilight(val,avg){
-   if (abs(val-avg)> avg*0.1) return sprintf("\033[31;1m%.0f\033[0m",val);
-   else return sprintf("%.0f",val);
+function highlight(val,avg){
+   if (abs(val-avg)> avg*0.1) return sprintf("\033[31;1m%7.0f\033[0m",val);
+   else return sprintf("%7.0f",val);
+}
+BEGIN { # must set!
+  COLS=16;			# also NF
+  for(i=1;i<=COLS;i++) data[i,"min"]=99999999;
 }
 {
   if( $1!="#" ){
-    i=1;
     num+=1;
-    while(i<=NF){
+    for(i=1;i<=COLS;i++){
       data[i,"sum"]+=$i;
       if ($i>data[i,"max"]) data[i,"max"]=$i;
-      if (data[i,"min"]==0) data[i,"min"]=$i;
       else if ($i<data[i,"min"]) data[i,"min"]=$i;
-      i+=1;
     }
   }
   else print $0;
 }  
 END{
   split("r b swpd free buff cache si so bi bo in cs us sy id wa",header,/ /);
-  i=1;
-  print "\033[;4;1mItem\tAverage\tMaximum\tMinimum\033[0m"
-  while(i<=16){
+  print "\033[;4;1mField   Average  Maximum  Minimum\033[0m"
+  for(i=1;i<=COLS;i++){
     avg=data[i,"sum"]/num;
-    printf "\033[;1m%s\033[0m\t%.0f\t%s\t%s\n", header[i], \
-      avg, hilight(data[i,"max"],avg), hilight(data[i,"min"],avg);
-    i+=1;
+    printf "\033[;1m%5s \033[0m%9.1f  %7s  %7s\n", header[i], \
+      avg, highlight(data[i,"max"],avg), highlight(data[i,"min"],avg);
   }
   print "Calculated", num, "items"
 }' "$DATA_FILE"
@@ -97,7 +96,7 @@ status() {
 
 show() {
     # calculates
-    echo -n "Analysising result ... "
+    echo -n "Analysising result ... ";
     if [ ! -e "$DATA_FILE" ]; then
 	OutputError "no data to analysis"
 	exit 1
@@ -121,7 +120,6 @@ monitor() {
 	sleep $INTERVAL
     done
 }
-
 
 
 case "$1" in
